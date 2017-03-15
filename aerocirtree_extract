@@ -1,0 +1,191 @@
+#!/usr/bin/python
+
+import urllib.request
+import sys
+import argparse
+from datetime import datetime, timedelta
+import math
+import numpy as np
+import re
+
+rad2deg = 180/math.pi
+regex = re.compile('stationName\[\d{4,5}\]\n')
+
+madis_url_allStationName = "http://dapds00.nci.org.au/thredds/dodsC/uc0/prl900_dev/metars/{year}{month:02d}{day:02d}_{hour:02d}00.nc.ascii?stationName"
+madis_url = "http://dapds00.nci.org.au/thredds/dodsC/uc0/prl900_dev/metars/{year}{month:02d}{day:02d}_{hour:02d}00.nc.ascii?altimeter[{idx}],temperature[{idx}],dewpoint[{idx}],windDir[{idx}],windSpeed[{idx}]"
+madis_location_url = "http://dapds00.nci.org.au/thredds/dodsC/uc0/prl900_dev/metars/{year}{month:02d}{day:02d}_{hour:02d}00.nc.ascii?latitude[{idx}],longitude[{idx}]"
+
+gfs_url = "https://nomads.ncdc.noaa.gov/thredds/dodsC/gfs-004-anl/{year}{month:02d}/{year}{month:02d}{day:02d}/gfsanl_4_{year}{month:02d}{day:02d}_{runtime:02d}00_{step:03d}.grb2.ascii?Relative_humidity_height_above_ground[0:1:0][0:1:0][{j}][{i}],Pressure_surface[0:1:0][{j}][{i}],Temperature_height_above_ground[0:1:0][0:1:0][{j}][{i}],U-component_of_wind_height_above_ground[0:1:0][0:1:0][{j}][{i}],V-component_of_wind_height_above_ground[0:1:0][0:1:0][{j}][{i}]"
+
+def get_angle(u, v):
+    raw_angle = math.atan2(u, v) * rad2deg
+    if raw_angle < 0:
+	    return 360 + raw_angle
+    return raw_angle
+
+def get_module(u, v):
+    return math.sqrt(u * u + v * v)
+
+# Julian day to degrees adjusted to the closer 10th
+def julian2angle(dt):
+   return int((dt.timetuple().tm_yday / 365 * 36)+.5) * 10
+
+# Hour of the day to degrees
+def time2angle(dt):
+   return int(((dt.hour*60 + dt.minute)/1440*360)+.5)
+
+def rel_hum(t, td):
+   return 100 - 5*(t-td)
+
+def get_station_idx(tstamp, code):
+    code = code.decode('utf-8')
+    try:
+        with urllib.request.urlopen(madis_url_allStationName.format(year=tstamp.year, month=tstamp.month, day=tstamp.day, hour=tstamp.hour)) as response:
+            for line in response:
+                if re.match(regex, line.decode('utf-8')):
+                    airports = response.readline().decode('utf-8')
+                    airports = [a[2:-1] for a in airports.split(',')] 
+                    return airports.index(code) if code in airports else -1
+    except:
+        return -1
+
+    return -1
+
+def get_madis_vars(tstamp, idx):
+    params = {}
+    try:
+        with urllib.request.urlopen(madis_url.format(year=tstamp.year, month=tstamp.month, day=tstamp.day, hour=tstamp.hour, idx=idx)) as response:
+            for line in response:
+                if line == b'dewpoint[1]\n':
+                    value = float(response.readline()[:-1].decode('utf-8')) - 273.15
+                    if value <= 1000.0:
+                        params['dew'] = value
+                    else:
+                        params['dew'] = float('nan')
+                elif line == b'temperature[1]\n':
+                    value = float(response.readline()[:-1].decode('utf-8')) - 273.15
+                    if value <= 1000.0:
+                        params['temp'] = value
+                    else:
+                        params['temp'] = float('nan')
+                elif line == b'windDir[1]\n':
+                    value = float(response.readline()[:-1].decode('utf-8'))
+                    if value <= 360.0:
+                        params['wind_dir'] = value
+                    else:
+                        params['wind_dir'] = float('nan')
+                elif line == b'windSpeed[1]\n':
+                    value = float(response.readline()[:-1].decode('utf-8'))
+                    if value <= 1000.0:
+                        params['wind_speed'] = value
+                    else:
+                        params['wind_speed'] = float('nan')
+                elif line == b'altimeter[1]\n':
+                    value = float(response.readline()[:-1].decode('utf-8'))/100
+                    if value <= 10000.0:
+                        params['press'] = value
+                    else:
+                        params['press'] = float('nan')
+    except:
+        params['dew'] = float('nan')
+        params['temp'] = float('nan')
+        params['wind_dir'] = float('nan')
+        params['wind_speed'] = float('nan')
+        params['press'] = float('nan')
+
+    return params
+
+def get_gfs_vars(tstamp, step, idx_i, idx_j):
+    params = {}
+    try:
+        with urllib.request.urlopen(gfs_url.format(year=tstamp.year, month=tstamp.month, day=tstamp.day, runtime=tstamp.hour, step=step, i=idx_i, j=idx_j)) as response:
+            for line in response:
+                if line == b'Pressure_surface.Pressure_surface[1][1][1]\n':
+                    params['press'] = float(response.readline()[:-1].decode('utf-8').split(',')[-1])/100
+                elif line == b'Temperature_height_above_ground.Temperature_height_above_ground[1][1][1][1]\n':
+                    params['temp'] = float(response.readline()[:-1].decode('utf-8').split(',')[-1])-273.15
+                elif line == b'Relative_humidity_height_above_ground.Relative_humidity_height_above_ground[1][1][1][1]\n':
+                    params['rh'] = float(response.readline()[:-1].decode('utf-8').split(',')[-1])
+                elif line == b'U-component_of_wind_height_above_ground.U-component_of_wind_height_above_ground[1][1][1][1]\n':
+                    params['u'] = float(response.readline()[:-1].decode('utf-8').split(',')[-1])
+                elif line == b'V-component_of_wind_height_above_ground.V-component_of_wind_height_above_ground[1][1][1][1]\n':
+                    params['v'] = float(response.readline()[:-1].decode('utf-8').split(',')[-1])
+        params['wind_dir'] = get_angle(params['u'], params['v'])
+        params['wind_spd'] = get_module(params['u'], params['v'])
+    except:
+        params['press'] = float('nan')
+        params['temp'] = float('nan')
+        params['rh'] = float('nan')
+        params['wind_dir'] = float('nan')
+        params['wind_spd'] = float('nan')
+	
+    return params
+	       
+def get_gfs_idx(lat, lon):
+    lon = lon + 180
+	
+    lons = np.linspace(0, 359.5, 720)
+    lats = np.linspace(90, -90, 361)
+
+    idx_i = (np.abs(lons-lon)).argmin()
+    idx_j = (np.abs(lats-lat)).argmin()
+
+    return idx_i, idx_j
+
+def get_location(tstamp, idx):
+    lat = None
+    lon = None
+    with urllib.request.urlopen(madis_location_url.format(year=tstamp.year, month=tstamp.month, day=tstamp.day, hour=tstamp.hour, idx=idx)) as response:
+        for line in response:
+            if line == b'latitude[1]\n':
+                lat = float(response.readline()[:-1].decode('utf-8'))
+            elif line == b'longitude[1]\n':
+                lon = float(response.readline()[:-1].decode('utf-8'))
+    return lat, lon
+
+if __name__ == "__main__":
+   parser = argparse.ArgumentParser(description='Airport historical weather data extractor displaying METAR observations and GFS forecasts.')
+   parser.add_argument('-a','--airport', help='ICAO Code for an airport', required=True)
+   parser.add_argument('-s','--start', help='YYYYMMDD start date', required=True)
+   parser.add_argument('-e','--end', help='YYYYMMDD end date', required=True)
+   args = parser.parse_args()
+
+   try:
+       start_date = datetime.strptime(args.start, '%Y%m%d')
+   except:
+       print("Start date is not a valid date or is not in the right format: YYYYMMDD")
+       sys.exit()
+
+   try:
+       end_date = datetime.strptime(args.end, '%Y%m%d')
+   except:
+       print("End date is not a valid date or is not in the right format: YYYYMMDD")
+       sys.exit()
+ 
+   airport = args.airport.encode()
+   #print('Airport ICAO code is ', airport)
+   #print('Start date is ', start_date)
+   #print('End date is ', end_date)
+   ddate = datetime(2015, 1, 1, 0, 0, 0)
+   idx = get_station_idx(ddate, airport)
+   lat, lon = get_location(ddate, idx)
+   #print("Lat, Lon:", lat, lon)
+   idx_i, idx_j = get_gfs_idx(lat, lon)
+   print("iso_date,metar_press,metar_temp,metar_rh,metar_wdir,metar_wspd,gfs_press,gfs_temp,gfs_rh,gfs_wdir,gfs_wspd,date,time")
+   while start_date <= end_date:
+      idx = get_station_idx(start_date, airport)
+      if idx != -1:
+          metar = get_madis_vars(start_date, idx)
+          gfs = get_gfs_vars(start_date, 0, idx_i, idx_j)
+      
+          print("{0},{1:0.1f},{2:0.1f},{3:0.1f},{4:0.1f},{5:0.1f},{6:0.1f},{7:0.1f},{8:0.1f},{9:0.1f},{10:0.1f},{11},{12}".format(start_date.strftime("%Y-%m-%d %H:%M:%S"), metar["press"], metar["temp"], rel_hum(metar["temp"], metar["dew"]), metar["wind_dir"], metar["wind_speed"], gfs["press"], gfs["temp"], gfs["rh"], gfs["wind_dir"], gfs["wind_spd"], julian2angle(start_date), time2angle(start_date)))
+
+      temp_date = start_date + timedelta(hours=3)
+      idx = get_station_idx(temp_date, airport)
+      if idx != -1:
+          metar = get_madis_vars(temp_date, idx)
+          gfs = get_gfs_vars(start_date, 3, idx_i, idx_j)
+      
+          print("{0},{1:0.1f},{2:0.1f},{3:0.1f},{4:0.1f},{5:0.1f},{6:0.1f},{7:0.1f},{8:0.1f},{9:0.1f},{10:0.1f},{11},{12}".format(temp_date.strftime("%Y-%m-%d %H:%M:%S"), metar["press"], metar["temp"], rel_hum(metar["temp"], metar["dew"]), metar["wind_dir"], metar["wind_speed"], gfs["press"], gfs["temp"], gfs["rh"], gfs["wind_dir"], gfs["wind_spd"], julian2angle(temp_date), time2angle(temp_date)))
+     
+      start_date += timedelta(hours=6)
