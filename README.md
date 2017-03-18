@@ -2,10 +2,10 @@
 A system for airport weather forecasting based on circular regression trees
 
 ### About:
-**AeroCirTree** is a Python 3.x library and a set of command line tools to extract historical weather timeseries for airports, train regression tree models and test the results.
-The Python library is built around the `Data` and `Node` classes and the functionality that it provides can be incorporated in other programs. There are three command line interface scripts, named **aerocirtree_extract**, **aerocirtree_train** and **aerocirtree_test** which make use of this library to fetch historical timeseries, train models and test results for any airport in the world.
+**AeroCirTree** is a Python 3.x package and a set of command line tools to extract historical weather timeseries for airports, train regression tree models and test the results.
+The Python package is built around the `Data` and `Node` classes and the functionality that it provides can be incorporated in other programs. There are three command line interface scripts, named **aerocirtree_extract**, **aerocirtree_train** and **aerocirtree_test** which make use of this library to fetch historical timeseries, train models and test results for any airport in the world.
 
-### Installation:
+### Requirements:
 
 This program is written in Python and to run it requires version 3. It also requires the Numpy and Pandas packages to be available in your environment.
 
@@ -25,7 +25,7 @@ conda install numpy
 
 Once your environment is set up, clone this repository and access its directory.
 
-### Examples:
+### Howto:
 
 Extracting historical data for an airport:
 
@@ -33,6 +33,12 @@ The script **aerocirtree_extract** is used to extract the historical time series
 
 ```bash
 ./aerocirtree_extract --airport EGLL --start_date 20160101 --end_date 20160601
+```
+
+To save the output in a file, Unix pipes can be used to redirect the output into a file (supposing a Unix like environemnt):
+
+```bash
+./aerocirtree_extract --airport EGLL --start_date 20160101 --end_date 20160601 > EGLL.csv
 ```
 
 Training a regression tree model:
@@ -57,5 +63,9 @@ If the data set is in a file called **EGLL.csv** and the config file is in a fil
 
 Running program would save a model on the local directory called **EGLL_Model_A.mod**
 
-The program is distributed with some data sets which has been already downloaded inside the **datasets** directory.
+The program is distributed with some data sets which has been already downloaded inside the **datasets** directory. This files allow users to experiment with training models without the need of having to download their own data, which for long time series can be a slow process. This folder also contains some examples of config files for different trees.
+
+```bash
+./aerocirtree_extract --data EGLL.csv --config Model_A.json
+```
 
