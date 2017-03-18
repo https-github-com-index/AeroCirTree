@@ -63,9 +63,9 @@ If the data set is in a file called **EGLL.csv** and the config file is in a fil
 
 Running program would save a model on the local directory called **EGLL_Model_A.mod**
 
-The program is distributed with some data sets which has been already downloaded inside the **datasets** directory. This files allow users to experiment with training models without the need of having to download their own data, which for long time series can be a slow process. This folder also contains some examples of config files for different trees.
+The program is distributed with some data sets which has been already downloaded inside the **datasets** directory. This files allow users to experiment with training models without the need of having to download their own data, which for long time series can be a slow process. This folder also contains some examples of config files for different trees. For example, to train a model  using the data extracted for Sydney airport and the config file specifying a model to forecast 10-meter wind speed we would do:
 
 ```bash
-./aerocirtree_extract --data EGLL.csv --config Model_A.json
+./aerocirtree_train --data datasets/yssy.csv --config datasets/wspd_2cir_press.json
 ```
 

@@ -1,0 +1,7 @@
+{"output":"metar_rh",
+"input":[{"name":"gfs_wind_dir","type":"cir"}, 
+         {"name":"time","type":"cir"},
+         {"name":"gfs_rh","type":"lin"},
+         {"name":"gfs_temp","type":"lin"}],
+"contiguous_splits":true,
+"max_leaf_size":1000}
