@@ -44,15 +44,12 @@ class Node(object):
                                                              self.data.var_desc[split["var_name"]]["bounds"],
                                                              self.data.var_desc[split["var_name"]]['type'] == 'cir')
 
-                #print(outer_bounds, inner_bounds)
-
                 left_desc = copy.deepcopy(self.data.var_desc)
                 left_desc[split["var_name"]]["bounds"] = inner_bounds
 
                 right_desc = copy.deepcopy(self.data.var_desc)
                 right_desc[split["var_name"]]["bounds"] = outer_bounds
 
-                #if self.data.var_desc[split["var_name"]]["method"] == "classic":
                 # Because the circular classic first split has to be treated as subset
                 if split['index'][0] is None:
                     self.left_child = Node(Data(self.data.df.iloc[:split['index'][1]],
@@ -62,7 +59,6 @@ class Node(object):
                                                  self.data.class_var, right_desc),
                                             self.stop, self.variance, self.level+1)
 
-                #elif self.data.var_desc[split["var_name"]]["method"] == "subset":
                 else:
                     self.left_child = Node(Data(self.data.df.iloc[split['index'][0]:split['index'][1]],
                                                 self.data.class_var, left_desc),

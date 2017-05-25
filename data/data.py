@@ -18,8 +18,6 @@ class Data(object):
         self.df = self.df.sort_values(col_name)
 
         if self.var_desc[col_name]["type"] == 'cir':
-            #print(col_name, self.var_desc)
-            #print(col_name, self.var_desc[col_name]["bounds"], self.var_desc[col_name]["bounds"][0][0], self.var_desc[col_name]["bounds"][-1][1])
             start = self.var_desc[col_name]["bounds"][0][0]
             end = self.var_desc[col_name]["bounds"][-1][1]
 
@@ -49,8 +47,6 @@ class Data(object):
 
             # Otherwise all the values are the same and it is not possible to split
             if iter_idx.shape[0] > 2:
-                #print(iter_idx.shape[0])
-
                 iter_idx = np.insert(iter_idx, 0, 0)
                 iter_idx = np.insert(iter_idx, iter_idx.shape[0], len(self.df.index)-1)
 
@@ -79,7 +75,5 @@ class Data(object):
             score = get_score(left, right)
             if score > best_split['score']:
                 best_split.update({'var_name': var_name, 'score': score, 'index': i[:]})
-
-        #print(best_split, self.df.iloc[i[1]][best_split["var_name"]], self.var_desc[best_split["var_name"]]["bounds"])
 
         return best_split
