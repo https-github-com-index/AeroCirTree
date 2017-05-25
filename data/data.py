@@ -53,8 +53,8 @@ class Data(object):
                 if iter_i[0] is None:
                     for idx in iter_idx[2:-2]:
                         yield (var, [None, idx],
-                               self.df.iloc[:idx][self.class_var].values,
-                               self.df.iloc[idx:][self.class_var].values)
+                               self.df.iloc[:idx][self.class_var['name']].values,
+                               self.df.iloc[idx:][self.class_var['name']].values)
 
                 else:
 
@@ -62,9 +62,9 @@ class Data(object):
                         for j in range(i+2, iter_idx.shape[0]-1):
                             if (i-j) % iter_idx.shape[0]-1 > 1:
                                 yield (var, [iter_idx[i], iter_idx[j]],
-                                       self.df.iloc[iter_idx[i]:iter_idx[j]][self.class_var].values,
-                                       np.concatenate((self.df.iloc[:iter_idx[i]][self.class_var].values,
-                                                       self.df.iloc[iter_idx[j]:][self.class_var].values)))
+                                       self.df.iloc[iter_idx[i]:iter_idx[j]][self.class_var['name']].values,
+                                       np.concatenate((self.df.iloc[:iter_idx[i]][self.class_var['name']].values,
+                                                       self.df.iloc[iter_idx[j]:][self.class_var['name']].values)))
 
 
 

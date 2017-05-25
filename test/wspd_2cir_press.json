@@ -1,4 +1,4 @@
-{"output":"metar_wind_spd",
+{"output":{"name":"metar_wind_spd","type":"lin"},
 "input":[{"name":"gfs_wind_dir","type":"cir"}, 
          {"name":"time","type":"cir"},
          {"name":"gfs_wind_spd","type":"lin"},

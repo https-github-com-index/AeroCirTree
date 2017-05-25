@@ -12,6 +12,7 @@ import numpy as np
 import argparse
 
 from data.data import Data
+from data.util import circular_mean
 from node.node import Node
 
 def is_in_bounds(bounds, value):
@@ -34,7 +35,12 @@ def tree_eval(node, row):
         nonlocal result
 
         if node.split_var is None:
-            result = np.mean(node.data.df[node.data.class_var].values)
+            if node.data.class_var['type'] == 'lin':
+                result = np.mean(node.data.df[node.data.class_var['name']].values)
+            elif node.data.class_var['type'] == 'cir':
+                result = circula_mean(node.data.df[node.data.class_var['name']].values)
+            else:
+                raise Exception("Class variable has an unkown type:", node.data.class_var['type'], "has to be either ['lin', 'cir']")
 
         else:
             if is_in_bounds(node.left_child.data.var_desc[node.split_var]["bounds"], row[node.split_var]):
@@ -125,4 +131,4 @@ if __name__ == "__main__":
     
     print("metar,model") 
     for _, row in df.iterrows():
-	    print("{0},{1:0.4f}".format(row[tree.data.class_var], tree_eval(tree, row)))
+	    print("{0},{1:0.4f}".format(row[tree.data.class_var['name']], tree_eval(tree, row)))

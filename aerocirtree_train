@@ -44,7 +44,7 @@ def tree_pprinter(node):
 
 
 def tree_trainer(df, class_var, var_desc, stop=50, variance=.01):
-        if class_var not in df.columns:
+        if class_var['name'] not in df.columns:
             raise Exception('Class variable not in DataFrame')
 
         data = Data(df, class_var, var_desc)
