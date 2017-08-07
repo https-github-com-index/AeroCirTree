@@ -44,9 +44,9 @@ def tree_pprinter(node):
 
 
 def tree_trainer(df, class_var, var_desc, stop=50, variance=.01):
-        if class_var['name'] not in df.columns:
+        if class_var not in df.columns:
             raise Exception('Class variable not in DataFrame')
-
+    
         data = Data(df, class_var, var_desc)
 
         node = Node(data, stop=stop, variance=variance)
@@ -70,7 +70,6 @@ if __name__ == "__main__":
         tree_pprinter(tree)
         exit(1)
 
-    print(args.data_path)
     df = pd.read_csv(args.data_path)
 
     with open(args.config_path) as conf_file:    
@@ -78,9 +77,9 @@ if __name__ == "__main__":
         tree_desc = {}
         for var in tree_params['input']:
             if not tree_params['contiguous_splits'] and var['type'] == "cir":
-                tree_desc[var['name']] = {"type": var['type'], "method": "subset", "bounds": [[-np.inf, np.inf]]}
+                tree_desc[var['name']] = {"type": var['type'], "method": "non-cont", "bounds": [[-np.inf, np.inf]]}
             else:
-                tree_desc[var['name']] = {"type": var['type'], "method": "classic", "bounds": [[-np.inf, np.inf]]}
-
-        tree = tree_trainer(df, tree_params['output'], tree_desc, tree_params['max_leaf_size'])
+                tree_desc[var['name']] = {"type": var['type'], "method": "cont", "bounds": [[-np.inf, np.inf]]}
+        print(tree_desc)
+        tree = tree_trainer(df, tree_params['output']['name'], tree_desc, tree_params['max_leaf_size'])
         pickle.dump(tree, open(model_name, "wb"))

@@ -2,6 +2,7 @@ import copy
 import pandas as pd
 from node.util import bound_generator
 from data.data import Data
+import numpy as np
 
 def is_in_bounds(bounds, value):
     for bound in bounds:
@@ -33,32 +34,42 @@ class Node(object):
 
         if len(self.data.df.index) > self.stop:
             split = self.data.get_best_split()
-
-            if split['score'] > self.variance:
-
+            
+            if split["score"] > self.variance and split["score"] != np.inf:
                 self.split_var = split["var_name"]
                 self.data.sort_by(self.split_var)
 
+                left_desc = copy.deepcopy(self.data.var_desc)
+                right_desc = copy.deepcopy(self.data.var_desc)
+                
                 outer_bounds, inner_bounds = bound_generator(self.data.df[split["var_name"]].values,
                                                              split['index'],
                                                              self.data.var_desc[split["var_name"]]["bounds"],
                                                              self.data.var_desc[split["var_name"]]['type'] == 'cir')
+                """
+                print("AAAA", outer_bounds, inner_bounds)
+                if outer_bounds == []:
+                    print(self.data.df[split["var_name"]].values,
+                          split['index'],
+                          self.data.var_desc[split["var_name"]]["bounds"],
+                          self.data.var_desc[split["var_name"]]['type'] == 'cir')
+                """
 
-                left_desc = copy.deepcopy(self.data.var_desc)
                 left_desc[split["var_name"]]["bounds"] = inner_bounds
 
-                right_desc = copy.deepcopy(self.data.var_desc)
                 right_desc[split["var_name"]]["bounds"] = outer_bounds
 
+                #if self.data.var_desc[split["var_name"]]["method"] == "classic":
                 # Because the circular classic first split has to be treated as subset
-                if split['index'][0] is None:
-                    self.left_child = Node(Data(self.data.df.iloc[:split['index'][1]],
+                if split['index'][1] is None:
+                    self.left_child = Node(Data(self.data.df.iloc[:split['index'][0]],
                                                 self.data.class_var, left_desc),
                                            self.stop, self.variance, self.level+1)
-                    self.right_child = Node(Data(self.data.df.iloc[split['index'][1]:],
+                    self.right_child = Node(Data(self.data.df.iloc[split['index'][0]:],
                                                  self.data.class_var, right_desc),
                                             self.stop, self.variance, self.level+1)
 
+                #elif self.data.var_desc[split["var_name"]]["method"] == "subset":
                 else:
                     self.left_child = Node(Data(self.data.df.iloc[split['index'][0]:split['index'][1]],
                                                 self.data.class_var, left_desc),
