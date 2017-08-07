@@ -69,3 +69,9 @@ The program is distributed with some data sets which has been already downloaded
 ./aerocirtree_train --data datasets/yssy.csv --config test/wspd_2cir_press.json
 ```
 
+### Manuscript experiment:
+
+To reproduce the results presented in the original manuscript, use this script that runs the different versions of the regression trees and outputs the results formated as a markdown table:
+
+`python manuscript_results.py test/wspd_2cir_press.json`
+
